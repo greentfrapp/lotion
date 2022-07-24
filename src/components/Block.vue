@@ -22,7 +22,15 @@
     </div>
     <div class="w-full relative" :class="{ 'px-4 sm:px-0': block.type !== BlockType.Divider }">
       <!-- Actual content -->
-      <div ref="content"
+      <editor v-if="props.block.type === BlockType.Text" ref="content"
+        v-model="props.block.details.value"
+        @keydown.capture="keyDownHandler"
+        @keyup="keyUpHandler"
+        class="py-1.5" />
+      <div v-else-if="props.block.type === BlockType.Divider" ref="content"
+        class="w-full py-0 h-[1px] bg-neutral-300 mt-[1.2rem]"
+        />
+      <div v-else ref="content"
         :contenteditable="![BlockType.Divider].includes(block.type)" spellcheck="false"
         @blur="block.details.value=content.innerText"
         @keydown="keyDownHandler"
@@ -42,7 +50,7 @@
   </div>
 </template>
 
-<style scoped>
+<style>
 /* Placeholder text styling */
 [contenteditable='true']:empty:focus:before{
   content:attr(data-ph);
@@ -55,6 +63,7 @@ import { ref, computed, watch, PropType, onMounted } from 'vue'
 import DOMPurify from 'dompurify'
 import { Block, BlockType } from '@/utils/types'
 import BlockMenu from './BlockMenu.vue'
+import Editor from './elements/Editor.vue'
 import Tooltip from './elements/Tooltip.vue'
 
 const props = defineProps({
@@ -85,6 +94,48 @@ const placeholder = computed(() => {
   else if (props.block.type === BlockType.Divider) return ''
   else return 'Type \'/\' for commands'
 })
+
+function getFirstChild () {
+  if (props.block.type === BlockType.Text) {
+    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
+      return content.value.$el.firstChild.firstChild.firstChild
+    } else {
+      return content.value.$el.firstChild.firstChild.firstChild
+    }
+  } else {
+    return content.value.firstChild || content.value
+  }
+}
+
+function getLastChild () {
+  if (props.block.type === BlockType.Text) {
+    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
+      return content.value.$el.firstChild.firstChild.lastChild
+    } else {
+      return content.value.$el.firstChild.firstChild.firstChild
+    }
+  } else {
+    return content.value.firstChild || content.value
+  }
+}
+
+function getInnerContent () {
+  if (props.block.type === BlockType.Text) {
+    return content.value.$el.firstChild.firstChild.firstChild
+  } else {
+    return content.value.firstChild || content.value
+  }
+}
+
+function getTextContent () {
+  const innerContent = getInnerContent()
+  if (innerContent) return innerContent.parentElement.textContent
+}
+
+function getHtmlContent () {
+  const innerContent = getInnerContent()
+  if (innerContent) return innerContent.parentElement.innerHTML
+}
 
 function keyDownHandler (event:KeyboardEvent) {
   if (event.key === 'ArrowUp') {
@@ -119,14 +170,14 @@ function keyDownHandler (event:KeyboardEvent) {
     }
   } else if (event.key === 'Backspace' && highlightedLength() === 0) {
     if (menu.value && menu.value.open) {
-      const selection = window.getSelection()
-      if (selection) {
-        const offset = selection.anchorOffset
-        const deletedChar = content.value.innerText.substring(offset-1, offset)
-        if (deletedChar === '/') {
-          menu.value.open = false
-        }
-      }
+      // const selection = window.getSelection()
+      // if (selection) {
+      //   const offset = selection.anchorOffset
+      //   const deletedChar = getTextContent().substring(offset-1, offset)
+      //   if (deletedChar === '/') {
+      //     menu.value.open = false
+      //   }
+      // }
     } else if (atFirstChar()) {
       event.preventDefault()
       emit('merge')
@@ -179,10 +230,11 @@ function highlightedLength () {
 
 function moveToStart () {
   if (isContentBlock()) {
-    if (content.value) {
+    const firstChild = getFirstChild()
+    if (firstChild) {
       const selection = window.getSelection()
       const range = document.createRange()
-      range.selectNodeContents(content.value.firstChild || content.value)
+      range.selectNodeContents(firstChild)
       range.collapse(true)
       selection.removeAllRanges()
       selection.addRange(range)
@@ -194,10 +246,11 @@ function moveToStart () {
 
 function moveToEnd () {
   if (isContentBlock()) {
-    if (content.value) {
+    const lastChild = getLastChild()
+    if (lastChild) {
       const selection = window.getSelection()
       const range = document.createRange()
-      range.selectNodeContents(content.value.firstChild || content.value)
+      range.selectNodeContents(lastChild)
       range.collapse()
       selection.removeAllRanges()
       selection.addRange(range)
@@ -207,14 +260,15 @@ function moveToEnd () {
   }
 }
 
-function moveToFirstLine () {
-  if (isContentBlock() && content.value) {
-    if (!content.value.firstChild) {
+async function moveToFirstLine () {
+  if (isContentBlock()) {
+    const textContent = getTextContent()
+    if (!textContent) {
       moveToStart()
     } else {
       let prevCoord = getCaretCoordinates()
       let prevDist = 99999
-      let caretPos = 0
+      let caretPos = 1
       while (true) {
         setCaretPos(caretPos)
         const newCoord = getCaretCoordinates()
@@ -222,7 +276,7 @@ function moveToFirstLine () {
         if (newDist > prevDist) {
           if (caretPos > 0) setCaretPos(caretPos - 1)
           break
-        } else if (caretPos === content.value.firstChild.length) {
+        } else if (caretPos === textContent.length || caretPos > 999) {
           // Reached end of line
           break
         } else {
@@ -236,20 +290,21 @@ function moveToFirstLine () {
   }
 }
 
-function moveToLastLine () {
-  if (isContentBlock() && content.value) {
-    if (!content.value.firstChild) {
+async function moveToLastLine () {
+  if (isContentBlock()) {
+    const textContent = getTextContent()
+    if (!textContent) {
       moveToStart()
     } else {
       let prevCoord = getCaretCoordinates()
       let prevDist = 99999
-      let caretPos = content.value.firstChild ? content.value.firstChild.length : 0
+      let caretPos = textContent.length
       while (true) {
         setCaretPos(caretPos)
         const newCoord = getCaretCoordinates()
         const newDist = Math.abs(newCoord.x - prevCoord.x)
         if (newDist > prevDist) {
-          if (caretPos < content.value.firstChild.length) setCaretPos(caretPos + 1)
+          if (caretPos < textContent.length) setCaretPos(caretPos + 1)
           break
         } else if (caretPos === 0) {
           // Reached start of line
@@ -270,6 +325,13 @@ function getCaretCoordinates () {
   const selection = window.getSelection()
   if (selection.rangeCount > 0) {
     const range = selection.getRangeAt(0)
+    if (range.startContainer.firstChild) {
+      const newRange = document.createRange()
+      newRange.selectNodeContents(range.startContainer.firstChild)
+      newRange.collapse(true)
+      const rect = newRange.getBoundingClientRect()
+      return rect
+    }
     const rect = range.getBoundingClientRect()
     return rect
   }
@@ -277,30 +339,100 @@ function getCaretCoordinates () {
 }
 
 function getCaretPos () {
-  if (content.value && content.value.firstChild) {
-    const selection = window.getSelection()
-    return selection.anchorOffset
+  const selection = window.getSelection()
+  if (selection) {
+    if (props.block.type === BlockType.Text) {
+      let offsetNode, offset = 0, tag = null
+      const numNodes = content.value.$el.firstChild.firstChild.childNodes.length
+      let selectedNode = selection.anchorNode
+      if (['STRONG', 'EM'].includes(selectedNode.parentElement.tagName)) {
+        selectedNode = selectedNode.parentElement
+        tag = selectedNode.tagName.toLowerCase()
+      }
+      for (const [i, node] of content.value.$el.firstChild.firstChild.childNodes.entries()) {
+        if (node === selectedNode) {
+          offsetNode = node
+          if (node.tagName) offset += 2 + node.tagName.length
+          break
+        }
+        if (node.tagName) offset += node.outerHTML.length
+        else offset += node.textContent.length
+        offsetNode = node
+      }
+      return { pos: offset + selection.anchorOffset + (selectedNode.parentElement.tagName === 'P' ? 3 : 0), tag }
+    } else {
+      return { pos: selection.anchorOffset }
+    }
   } else {
-    return 0
+    return { pos: 0 }
+  }
+}
+
+function getCaretPosWithoutTags () {
+  const selection = window.getSelection()
+  if (selection) {
+    if (props.block.type === BlockType.Text) {
+      let offsetNode, offset = 0, tag = null
+      const numNodes = content.value.$el.firstChild.firstChild.childNodes.length
+      let selectedNode = selection.anchorNode
+      if (['STRONG', 'EM'].includes(selectedNode.parentElement.tagName)) {
+        selectedNode = selectedNode.parentElement
+        tag = selectedNode.tagName.toLowerCase()
+      }
+      for (const [i, node] of content.value.$el.firstChild.firstChild.childNodes.entries()) {
+        if (node === selectedNode) {
+          offsetNode = node
+          break
+        }
+        offset += node.textContent.length
+        offsetNode = node
+      }
+      return { pos: offset + selection.anchorOffset, tag }
+    } else {
+      return { pos: selection.anchorOffset }
+    }
+  } else {
+    return { pos: 0 }
   }
 }
 
 function setCaretPos (caretPos:number) {
-  if (content.value) {
-    const selection = window.getSelection()
-    const range = document.createRange()
-    range.setStart(content.value.firstChild || content.value, caretPos)
-    range.setEnd(content.value.firstChild || content.value, caretPos)
-    selection.removeAllRanges()
-    selection.addRange(range)
+  const innerContent = getInnerContent()
+  if (innerContent) {
+    if (props.block.type === BlockType.Text) {
+      let offsetNode, offset = 0
+      const numNodes = content.value.$el.firstChild.firstChild.childNodes.length
+      for (const [i, node] of content.value.$el.firstChild.firstChild.childNodes.entries()) {
+        if (offset + node.textContent.length > caretPos || i === numNodes - 1) {
+          offsetNode = node
+          break
+        }
+        offset += node.textContent.length
+        offsetNode = node
+      }
+      const selection = window.getSelection()
+      const range = document.createRange()
+      range.setStart(offsetNode.firstChild || offsetNode, caretPos - offset)
+      range.setEnd(offsetNode.firstChild || offsetNode, caretPos - offset)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    } else {
+      const selection = window.getSelection()
+      const range = document.createRange()
+      range.setStart(innerContent, caretPos)
+      range.setEnd(innerContent, caretPos)
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
   }
 }
 
 function getStartCoordinates () {
   let x = 0, y = 0
-  if (content.value) {
+  const firstChild = getFirstChild()
+  if (firstChild) {
     const range = document.createRange()
-    range.selectNodeContents(content.value.firstChild || content.value)
+    range.selectNodeContents(firstChild.firstChild || firstChild)
     range.collapse(true)
     const rect = range.getBoundingClientRect()
     x = rect.left
@@ -311,9 +443,10 @@ function getStartCoordinates () {
 
 function getEndCoordinates () {
   let x = 0, y = 0
-  if (content.value) {
+  const lastChild = getLastChild()
+  if (lastChild) {
     const range = document.createRange()
-    range.selectNodeContents(content.value.firstChild || content.value)
+    range.selectNodeContents(lastChild.firstChild || lastChild)
     range.collapse()
     const rect = range.getBoundingClientRect()
     x = rect.left
@@ -323,29 +456,46 @@ function getEndCoordinates () {
 }
 
 function parseMarkdown (event:Event) {
-  if (content.value) {
-    if (content.value.innerText.match(/^#\s$/) && event.key === ' ') {
-      content.value.innerText = ''
+  const textContent = getTextContent()
+  if (textContent) {
+    if (textContent.match(/^#\s$/) && event.key === ' ') {
       emit('setBlockType', BlockType.H1)
-    } else if (content.value.innerText.match(/^##\s$/) && event.key === ' ') {
       content.value.innerText = ''
+      props.block.details.value = ''
+    } else if (textContent.match(/^##\s$/) && event.key === ' ') {
       emit('setBlockType', BlockType.H2)
-    } else if (content.value.innerText.match(/^---$/)) {
       content.value.innerText = ''
+      props.block.details.value = ''
+    } else if (textContent.match(/^---$/)) {
       emit('setBlockType', BlockType.Divider)
+      content.value.innerText = ''
     } else if (event.key === '/') {
       if (menu.value) menu.value.open = true
     }
   }
 }
 
-function clearSearch (startIdx: number, endIdx: number) {
-  content.value.innerText = content.value.innerText.substring(0, startIdx) + content.value.innerText.substring(endIdx)
-  setCaretPos(startIdx)
+function clearSearch (searchTermLength: number) {
+  if (props.block.type === BlockType.H1 || true) {
+    const pos = getCaretPosWithoutTags().pos
+    const startIdx = pos - searchTermLength - 1
+    const endIdx = pos
+    setTimeout(() => {
+      try {
+        props.block.details.value = content.value.innerText.substring(0, startIdx) + content.value.innerText.substring(endIdx)
+        content.value.innerText = content.value.innerText.substring(0, startIdx) + content.value.innerText.substring(endIdx)
+      } catch {
+
+      }
+      setTimeout(() => setCaretPos(startIdx))
+    })
+  }
 }
 
 defineExpose({
   content,
+  getTextContent,
+  getHtmlContent,
   moveToStart,
   moveToEnd,
   moveToFirstLine,

@@ -2,7 +2,7 @@
   <div class="grid grid-cols-2">
     <div class="h-screen overflow-y-auto">
       <pre class="whitespace-pre-wrap p-10">
-      {{ JSON.stringify(blocks, false, 2) }}
+      {{ JSON.stringify(markdownBlocks, false, 2) }}
       </pre>
     </div>
     <div class="max-w-prose mx-auto my-24">
@@ -63,7 +63,7 @@
 </style>
 
 <script setup lang="ts">
-import { ref, onBeforeUpdate } from 'vue'
+import { ref, computed, onBeforeUpdate } from 'vue'
 import { VueDraggableNext as draggable } from 'vue-draggable-next'
 import { BlockType } from '@/utils/types'
 import Block from './Block.vue'
@@ -97,22 +97,22 @@ const blocks = ref([{
 }, {
   type: BlockType.Text,
   details: {
-    value: 'Add a new line and insert something'
+    value: '1. Add a new line and insert something'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: 'Drag the ⋮⋮ button on the left of this to-do to reorder'
+    value: '2. Drag the ⋮⋮ button on the left of this to reorder'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: 'Click the trash icon to delete a block'
+    value: '3. Click the trash icon to delete a block'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: 'Type \'/\' for slash commands'
+    value: '4. Type \'/\' for slash commands'
   },
 }, ])
 
@@ -133,30 +133,63 @@ function insertBlock (blockIdx: number) {
 }
 
 function setBlockType (blockIdx: number, type: BlockType) {
+  if (blocks.value[blockIdx].type === BlockType.Text) {
+    blocks.value[blockIdx].details.value = blockElements.value[blockIdx].getTextContent()
+  }
   blocks.value[blockIdx].type = type
-  if (type === BlockType.Divider) insertBlock(blockIdx)
+  if (type === BlockType.Divider) {
+    blocks.value[blockIdx].details = {}
+    insertBlock(blockIdx)
+  } else setTimeout(() => blockElements.value[blockIdx].moveToEnd())
 }
 
 function merge (blockIdx: number) {
-  if (![BlockType.Text, BlockType.H1, BlockType.H2].includes(blocks.value[blockIdx-1].type)) {
-    blocks.value.splice(blockIdx-1, 1)
+  if (blocks.value[blockIdx-1].type === BlockType.Text) {
+    const prevBlockContentLength = blockElements.value[blockIdx-1].getTextContent().length
+    blocks.value[blockIdx-1].details.value = ('<p>' + blocks.value[blockIdx-1].details.value.replace('<p>', '').replace('</p>', '') + blockElements.value[blockIdx].getHtmlContent().replace('<p>', '').replace('</p>', '') + '</p>').replace('</strong><strong>', '').replace('</em><em>', '')
     setTimeout(() => {
-      blockElements.value[blockIdx-1].moveToStart()
+      blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
+      blocks.value.splice(blockIdx, 1)
     })
-    return
+  } else if ([BlockType.H1, BlockType.H2].includes(blocks.value[blockIdx-1].type)) {
+    const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
+    blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].getTextContent()
+    setTimeout(() => {
+      blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
+      blocks.value.splice(blockIdx, 1)
+    })
+  } else {
+    blocks.value.splice(blockIdx-1, 1)
+    setTimeout(() => blockElements.value[blockIdx-1].moveToStart())
   }
-  const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
-  blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].content.innerText
-  setTimeout(() => {
-    blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
-    blocks.value.splice(blockIdx, 1)
-  })
 }
 
 function split (blockIdx: number) {
   const caretPos = blockElements.value[blockIdx].getCaretPos()
   insertBlock(blockIdx)
-  blocks.value[blockIdx+1].details.value = blocks.value[blockIdx].details.value.slice(caretPos)
-  blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos)
+  blocks.value[blockIdx+1].details.value = (caretPos.tag ? `<p><${caretPos.tag}>` : '') + blocks.value[blockIdx].details.value.slice(caretPos.pos)
+  blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos.pos) + (caretPos.tag ? `</${caretPos.tag}></p>` : '')
+  setTimeout(() => blockElements.value[blockIdx+1].moveToStart())
 }
+
+const markdownBlocks = computed(() => {
+  return blocks.value.map(block => {
+    if (block.type === BlockType.Text) {
+      return {
+        type: BlockType.Text,
+        details: {
+          value: block.details.value
+            .replaceAll('<p>', '')
+            .replaceAll('</p>', '')
+            .replaceAll('<strong>', '**')
+            .replaceAll('</strong>', '**')
+            .replaceAll('<em>', '*')
+            .replaceAll('</em>', '*')
+        }
+      }
+    } else {
+      return block
+    }
+  })
+})
 </script>
