@@ -66,15 +66,11 @@ export default {
       content: this.modelValue,
       onUpdate: () => {
         // HTML
-        this.$emit('update:modelValue', this.editor.getHTML())
+        this.$emit('update:modelValue', this.$el.innerText ? this.editor.getHTML() : '')
 
         // JSON
         // this.$emit('update:modelValue', this.editor.getJSON())
       },
-    //   onTransaction: ({ transaction }) => {
-    //     console.log(transaction.curSelection.$head)
-    //     console.log(transaction.curSelection.$anchor)
-    //   },
     })
   },
 

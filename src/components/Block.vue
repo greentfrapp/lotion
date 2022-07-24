@@ -7,8 +7,7 @@
     }">
     <div class="h-full py-1.5 px-2 pl-4 text-center cursor-pointer transition-all duration-150 text-neutral-300 flex">
       <Tooltip value="<span class='text-neutral-400'><span class='text-white'>Click</span> to delete block</span>">
-        <!-- <v-icon name="hi-trash" @click="emit('deleteBlock')" -->
-        <v-icon name="hi-trash" @click="test"
+        <v-icon name="hi-trash" @click="emit('deleteBlock')"
           class="w-6 h-6 hover:bg-neutral-100 hover:text-neutral-400 p-0.5 rounded group-hover:opacity-100 opacity-0" />
       </Tooltip>
       <Tooltip value="<span class='text-neutral-400'><span class='text-white'>Click</span> to add block below</span>">
@@ -24,15 +23,18 @@
     <div class="w-full relative" :class="{ 'px-4 sm:px-0': block.type !== BlockType.Divider }">
       <!-- Actual content -->
       <editor v-if="props.block.type === BlockType.Text" ref="content"
-        v-model="props.block.details.value" @keydown.capture="keyDownHandler"
-        @mouseup="test"
+        v-model="props.block.details.value"
+        @keydown.capture="keyDownHandler"
+        @keyup="keyUpHandler"
         class="py-1.5" />
+      <div v-else-if="props.block.type === BlockType.Divider" ref="content"
+        class="w-full py-0 h-[1px] bg-neutral-300 mt-[1.2rem]"
+        />
       <div v-else ref="content"
         :contenteditable="![BlockType.Divider].includes(block.type)" spellcheck="false"
-        @blur="block.details.value=content.innerHTML"
+        @blur="block.details.value=content.innerText"
         @keydown="keyDownHandler"
         @keyup="keyUpHandler"
-        @mouseup="test"
         class="focus:outline-none focus-visible:outline-none w-full"
         :class="{
           'py-1.5': block.type === BlockType.Text,
@@ -48,7 +50,7 @@
   </div>
 </template>
 
-<style scoped>
+<style>
 /* Placeholder text styling */
 [contenteditable='true']:empty:focus:before{
   content:attr(data-ph);
@@ -105,18 +107,6 @@ function getFirstChild () {
   }
 }
 
-const firstChild = computed(() => {
-  if (props.block.type === BlockType.Text) {
-    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
-      return content.value.$el.firstChild.firstChild.firstChild
-    } else {
-      return content.value.$el.firstChild.firstChild.firstChild
-    }
-  } else {
-    return content.value.firstChild || content.value
-  }
-})
-
 function getLastChild () {
   if (props.block.type === BlockType.Text) {
     if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
@@ -129,51 +119,12 @@ function getLastChild () {
   }
 }
 
-const lastChild = computed(() => {
-  if (props.block.type === BlockType.Text) {
-    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
-      return content.value.$el.firstChild.firstChild.lastChild
-    } else {
-      return content.value.$el.firstChild.firstChild.firstChild
-    }
-  } else {
-    return content.value.firstChild || content.value
-  }
-})
-
 function getInnerContent () {
   if (props.block.type === BlockType.Text) {
-    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
-      return content.value.$el.firstChild.firstChild.firstChild
-    } else {
-      return content.value.$el.firstChild.firstChild.firstChild
-    }
     return content.value.$el.firstChild.firstChild.firstChild
   } else {
     return content.value.firstChild || content.value
   }
-}
-
-const innerContent = computed(() => {
-  if (props.block.type === BlockType.Text) {
-    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
-      return content.value.$el.firstChild.firstChild.firstChild
-    } else {
-      return content.value.$el.firstChild.firstChild.firstChild
-    }
-    return content.value.$el.firstChild.firstChild.firstChild
-  } else {
-    return content.value.firstChild || content.value
-  }
-})
-
-function test () {
-  // moveToEnd()
-  // setCaretPos(0)
-  // console.log(getCaretCoordinates())
-  // console.log(content.value)
-  // content.value.editor.commands.focus(2)
-  // console.log(content.value.editor.commands.setTextSelection)
 }
 
 function getTextContent () {
@@ -181,18 +132,10 @@ function getTextContent () {
   if (innerContent) return innerContent.parentElement.textContent
 }
 
-const textContent = computed(() => {
-  if (innerContent.value) return innerContent.value.parentElement.textContent
-})
-
 function getHtmlContent () {
   const innerContent = getInnerContent()
   if (innerContent) return innerContent.parentElement.innerHTML
 }
-
-const htmlContent = computed(() => {
-  if (innerContent.value) return innerContent.value.parentElement.innerHTML
-})
 
 function keyDownHandler (event:KeyboardEvent) {
   if (event.key === 'ArrowUp') {
@@ -205,8 +148,6 @@ function keyDownHandler (event:KeyboardEvent) {
       emit('moveToPrevLine')
     }
   } else if (event.key === 'ArrowDown') {
-    console.log(getEndCoordinates())
-    console.log(getCaretCoordinates())
     if (menu.value.open) {
       event.preventDefault()
     }
@@ -229,65 +170,14 @@ function keyDownHandler (event:KeyboardEvent) {
     }
   } else if (event.key === 'Backspace' && highlightedLength() === 0) {
     if (menu.value && menu.value.open) {
-      const selection = window.getSelection()
-      if (selection) {
-        const offset = selection.anchorOffset
-        const deletedChar = content.value.innerText.substring(offset-1, offset)
-        if (deletedChar === '/') {
-          menu.value.open = false
-        }
-      }
-    } else if (atFirstChar()) {
-      event.preventDefault()
-      emit('merge')
-    }
-  } else if (event.key === 'Enter') {
-    event.preventDefault()
-    if (!(menu.value && menu.value.open)) {
-      emit('split')
-    }
-  }
-  return
-  if (event.key === 'ArrowUp') {
-    if (menu.value.open) {
-      event.preventDefault()
-    }
-    // If at first line, move to previous block
-    else if (atFirstLine()) {
-      event.preventDefault()
-      emit('moveToPrevLine')
-    }
-  } else if (event.key === 'ArrowDown') {
-    if (menu.value.open) {
-      event.preventDefault()
-    }
-    // If at last line, move to next block
-    else if (atLastLine()) {
-      event.preventDefault()
-      emit('moveToNextLine')
-    }
-  } else if (event.key === 'ArrowLeft') {
-    // If at first character, move to previous block
-    if (atFirstChar()) {
-      event.preventDefault()
-      emit('moveToPrevChar')
-    }
-  } else if (event.key === 'ArrowRight') {
-    // If at last character, move to next block
-    if (atLastChar()) {
-      event.preventDefault()
-      emit('moveToNextChar')
-    }
-  } else if (event.key === 'Backspace' && highlightedLength() === 0) {
-    if (menu.value && menu.value.open) {
-      const selection = window.getSelection()
-      if (selection) {
-        const offset = selection.anchorOffset
-        const deletedChar = content.value.innerText.substring(offset-1, offset)
-        if (deletedChar === '/') {
-          menu.value.open = false
-        }
-      }
+      // const selection = window.getSelection()
+      // if (selection) {
+      //   const offset = selection.anchorOffset
+      //   const deletedChar = getTextContent().substring(offset-1, offset)
+      //   if (deletedChar === '/') {
+      //     menu.value.open = false
+      //   }
+      // }
     } else if (atFirstChar()) {
       event.preventDefault()
       emit('merge')
@@ -301,7 +191,7 @@ function keyDownHandler (event:KeyboardEvent) {
 }
 
 function keyUpHandler (event:Event) {
-  // parseMarkdown(event)
+  parseMarkdown(event)
 }
 
 function isContentBlock () {
@@ -435,6 +325,13 @@ function getCaretCoordinates () {
   const selection = window.getSelection()
   if (selection.rangeCount > 0) {
     const range = selection.getRangeAt(0)
+    if (range.startContainer.firstChild) {
+      const newRange = document.createRange()
+      newRange.selectNodeContents(range.startContainer.firstChild)
+      newRange.collapse(true)
+      const rect = newRange.getBoundingClientRect()
+      return rect
+    }
     const rect = range.getBoundingClientRect()
     return rect
   }
@@ -462,7 +359,7 @@ function getCaretPos () {
         else offset += node.textContent.length
         offsetNode = node
       }
-      return { pos: offset + selection.anchorOffset + 3, tag }
+      return { pos: offset + selection.anchorOffset + (selectedNode.parentElement.tagName === 'P' ? 3 : 0), tag }
     } else {
       return { pos: selection.anchorOffset }
     }
@@ -475,7 +372,6 @@ function setCaretPos (caretPos:number) {
   const innerContent = getInnerContent()
   if (innerContent) {
     if (props.block.type === BlockType.Text) {
-      // content.value.editor.commands.focus(caretPos)
       let offsetNode, offset = 0
       const numNodes = content.value.$el.firstChild.firstChild.childNodes.length
       for (const [i, node] of content.value.$el.firstChild.firstChild.childNodes.entries()) {
@@ -525,29 +421,31 @@ function getEndCoordinates () {
     range.selectNodeContents(lastChild.firstChild || lastChild)
     range.collapse()
     const rect = range.getBoundingClientRect()
-    console.log(rect)
     x = rect.left
     y = rect.top
   }
   return { x, y }
 }
 
-// function parseMarkdown (event:Event) {
-//   if (content.value) {
-//     if (content.value.innerText.match(/^#\s$/) && event.key === ' ') {
-//       content.value.innerText = ''
-//       emit('setBlockType', BlockType.H1)
-//     } else if (content.value.innerText.match(/^##\s$/) && event.key === ' ') {
-//       content.value.innerText = ''
-//       emit('setBlockType', BlockType.H2)
-//     } else if (content.value.innerText.match(/^---$/)) {
-//       content.value.innerText = ''
-//       emit('setBlockType', BlockType.Divider)
-//     } else if (event.key === '/') {
-//       if (menu.value) menu.value.open = true
-//     }
-//   }
-// }
+function parseMarkdown (event:Event) {
+  const textContent = getTextContent()
+  if (textContent) {
+    if (textContent.match(/^#\s$/) && event.key === ' ') {
+      emit('setBlockType', BlockType.H1)
+      content.value.innerText = ''
+      props.block.details.value = ''
+    } else if (textContent.match(/^##\s$/) && event.key === ' ') {
+      emit('setBlockType', BlockType.H2)
+      content.value.innerText = ''
+      props.block.details.value = ''
+    } else if (textContent.match(/^---$/)) {
+      emit('setBlockType', BlockType.Divider)
+      content.value.innerText = ''
+    } else if (event.key === '/') {
+      if (menu.value) menu.value.open = true
+    }
+  }
+}
 
 function clearSearch (startIdx: number, endIdx: number) {
   // content.value.innerText = content.value.innerText.substring(0, startIdx) + content.value.innerText.substring(endIdx)

@@ -136,12 +136,12 @@ document.addEventListener('keydown', (event:KeyboardEvent) => {
       //  Move down
       active.value = Math.min(active.value + 1, options.value.length - 1)
     }
-    const option = document.getElementById(`${id}-option-${active.value}`)
-    option?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'nearest',
-    })
+    // const option = document.getElementById(`${id}-option-${active.value}`)
+    // option?.scrollIntoView({
+    //   behavior: 'smooth',
+    //   block: 'nearest',
+    //   inline: 'nearest',
+    // })
   } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
     // Left/right will exit menu
     if (searchTerm.value.length === 0) emit('closeMenu')
@@ -155,13 +155,13 @@ document.addEventListener('keydown', (event:KeyboardEvent) => {
     else if (options.value[active.value].label === 'Edit label') emit('closeMenu')
   } else if (event.key === 'Escape') {
     // Escape closes menu
-    emit('closeMenu')
+    open.value = false
   } else if (event.key.match(/^([a-zA-Z]|[0-9])$/)) {
     // Alphanumeric searches menu
     searchTerm.value += event.key
   } else if (event.key === 'Backspace') {
     // Backspace closes menu if searchTerm is empty
-    if (searchTerm.value.length === 0) emit('closeMenu')
+    if (searchTerm.value.length === 0) open.value = false
     else searchTerm.value = searchTerm.value.slice(0, -1)
   }
 })

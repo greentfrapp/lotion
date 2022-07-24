@@ -123,16 +123,19 @@ function insertBlock (blockIdx: number) {
 
 function setBlockType (blockIdx: number, type: BlockType) {
   if (blocks.value[blockIdx].type === BlockType.Text) {
-    blocks.value[blockIdx].details.value = blockElements.value[blockIdx].content.editor.options.content
+    blocks.value[blockIdx].details.value = blockElements.value[blockIdx].getTextContent()
   }
   blocks.value[blockIdx].type = type
-  if (type === BlockType.Divider) insertBlock(blockIdx)
+  if (type === BlockType.Divider) {
+    blocks.value[blockIdx].details = {}
+    insertBlock(blockIdx)
+  } else setTimeout(() => blockElements.value[blockIdx].moveToEnd())
 }
 
 function merge (blockIdx: number) {
   if (blocks.value[blockIdx-1].type === BlockType.Text) {
-    const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
-    blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].getHtmlContent()
+    const prevBlockContentLength = blockElements.value[blockIdx-1].getTextContent().length
+    blocks.value[blockIdx-1].details.value = ('<p>' + blocks.value[blockIdx-1].details.value.replace('<p>', '').replace('</p>', '') + blockElements.value[blockIdx].getHtmlContent().replace('<p>', '').replace('</p>', '') + '</p>').replace('</strong><strong>', '').replace('</em><em>', '')
     setTimeout(() => {
       blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
       blocks.value.splice(blockIdx, 1)
@@ -146,23 +149,19 @@ function merge (blockIdx: number) {
     })
   } else {
     blocks.value.splice(blockIdx-1, 1)
-    setTimeout(() => {
-      blockElements.value[blockIdx-1].moveToStart()
-    })
+    setTimeout(() => blockElements.value[blockIdx-1].moveToStart())
   }
 }
 
 function split (blockIdx: number) {
   const caretPos = blockElements.value[blockIdx].getCaretPos()
-  console.log(caretPos)
-  console.log(blocks.value[blockIdx].details.value.slice(0, caretPos.pos))
   insertBlock(blockIdx)
   blocks.value[blockIdx+1].details.value = (caretPos.tag ? `<p><${caretPos.tag}>` : '') + blocks.value[blockIdx].details.value.slice(caretPos.pos)
   blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos.pos) + (caretPos.tag ? `</${caretPos.tag}></p>` : '')
+  setTimeout(() => blockElements.value[blockIdx+1].moveToStart())
 }
 
 const markdownBlocks = computed(() => {
-  // return blocks.value
   return blocks.value.map(block => {
     if (block.type === BlockType.Text) {
       return {
