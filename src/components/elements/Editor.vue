@@ -56,7 +56,7 @@ onMounted(() => {
     content: props.modelValue,
     onUpdate: () => {
       // HTML
-      emit('update:modelValue', editor.value?.getHTML())
+      emit('update:modelValue', editor.value?.getHTML().replaceAll(/\<br.*?\>/g, ''))
 
       // JSON
       // this.$emit('update:modelValue', this.editor.getJSON())

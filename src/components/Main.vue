@@ -200,6 +200,7 @@ const markdownBlocks = computed(() => {
             .replaceAll('</strong>', '**')
             .replaceAll('<em>', '*')
             .replaceAll('</em>', '*')
+            .replaceAll(/\<br.*?\>/g, '')
         }
       }
     } else {
