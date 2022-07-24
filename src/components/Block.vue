@@ -93,6 +93,18 @@ const placeholder = computed(() => {
   else return 'Type \'/\' for commands'
 })
 
+function getFirstChild () {
+  if (props.block.type === BlockType.Text) {
+    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
+      return content.value.$el.firstChild.firstChild.firstChild
+    } else {
+      return content.value.$el.firstChild.firstChild.firstChild
+    }
+  } else {
+    return content.value.firstChild || content.value
+  }
+}
+
 const firstChild = computed(() => {
   if (props.block.type === BlockType.Text) {
     if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
@@ -105,6 +117,18 @@ const firstChild = computed(() => {
   }
 })
 
+function getLastChild () {
+  if (props.block.type === BlockType.Text) {
+    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
+      return content.value.$el.firstChild.firstChild.lastChild
+    } else {
+      return content.value.$el.firstChild.firstChild.firstChild
+    }
+  } else {
+    return content.value.firstChild || content.value
+  }
+}
+
 const lastChild = computed(() => {
   if (props.block.type === BlockType.Text) {
     if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
@@ -116,6 +140,19 @@ const lastChild = computed(() => {
     return content.value.firstChild || content.value
   }
 })
+
+function getInnerContent () {
+  if (props.block.type === BlockType.Text) {
+    if (content.value.$el.firstChild.firstChild.childNodes.length > 1) {
+      return content.value.$el.firstChild.firstChild.firstChild
+    } else {
+      return content.value.$el.firstChild.firstChild.firstChild
+    }
+    return content.value.$el.firstChild.firstChild.firstChild
+  } else {
+    return content.value.firstChild || content.value
+  }
+}
 
 const innerContent = computed(() => {
   if (props.block.type === BlockType.Text) {
@@ -139,9 +176,19 @@ function test () {
   // console.log(content.value.editor.commands.setTextSelection)
 }
 
+function getTextContent () {
+  const innerContent = getInnerContent()
+  if (innerContent) return innerContent.parentElement.textContent
+}
+
 const textContent = computed(() => {
   if (innerContent.value) return innerContent.value.parentElement.textContent
 })
+
+function getHtmlContent () {
+  const innerContent = getInnerContent()
+  if (innerContent) return innerContent.parentElement.innerHTML
+}
 
 const htmlContent = computed(() => {
   if (innerContent.value) return innerContent.value.parentElement.innerHTML
@@ -291,10 +338,11 @@ function highlightedLength () {
 
 function moveToStart () {
   if (isContentBlock()) {
-    if (firstChild.value) {
+    const firstChild = getFirstChild()
+    if (firstChild) {
       const selection = window.getSelection()
       const range = document.createRange()
-      range.selectNodeContents(firstChild.value)
+      range.selectNodeContents(firstChild)
       range.collapse(true)
       selection.removeAllRanges()
       selection.addRange(range)
@@ -306,10 +354,11 @@ function moveToStart () {
 
 function moveToEnd () {
   if (isContentBlock()) {
-    if (lastChild.value) {
+    const lastChild = getLastChild()
+    if (lastChild) {
       const selection = window.getSelection()
       const range = document.createRange()
-      range.selectNodeContents(lastChild.value)
+      range.selectNodeContents(lastChild)
       range.collapse()
       selection.removeAllRanges()
       selection.addRange(range)
@@ -321,7 +370,8 @@ function moveToEnd () {
 
 async function moveToFirstLine () {
   if (isContentBlock()) {
-    if (!textContent.value) {
+    const textContent = getTextContent()
+    if (!textContent) {
       moveToStart()
     } else {
       let prevCoord = getCaretCoordinates()
@@ -334,7 +384,7 @@ async function moveToFirstLine () {
         if (newDist > prevDist) {
           if (caretPos > 0) setCaretPos(caretPos - 1)
           break
-        } else if (caretPos === textContent.value.length || caretPos > 999) {
+        } else if (caretPos === textContent.length || caretPos > 999) {
           // Reached end of line
           break
         } else {
@@ -350,18 +400,19 @@ async function moveToFirstLine () {
 
 async function moveToLastLine () {
   if (isContentBlock()) {
-    if (!textContent.value) {
+    const textContent = getTextContent()
+    if (!textContent) {
       moveToStart()
     } else {
       let prevCoord = getCaretCoordinates()
       let prevDist = 99999
-      let caretPos = textContent.value.length
+      let caretPos = textContent.length
       while (true) {
         setCaretPos(caretPos)
         const newCoord = getCaretCoordinates()
         const newDist = Math.abs(newCoord.x - prevCoord.x)
         if (newDist > prevDist) {
-          if (caretPos < textContent.value.length) setCaretPos(caretPos + 1)
+          if (caretPos < textContent.length) setCaretPos(caretPos + 1)
           break
         } else if (caretPos === 0) {
           // Reached start of line
@@ -391,14 +442,34 @@ function getCaretCoordinates () {
 function getCaretPos () {
   const selection = window.getSelection()
   if (selection) {
-    return selection.anchorOffset
+    console.log(selection.anchorNode)
+    if (props.block.type === BlockType.Text) {
+      let offsetNode, offset = 0
+      const numNodes = content.value.$el.firstChild.firstChild.childNodes.length
+      let selectedNode = selection.anchorNode
+      if (selectedNode.parentElement.tagName === 'STRONG') selectedNode = selectedNode.parentElement
+      for (const [i, node] of content.value.$el.firstChild.firstChild.childNodes.entries()) {
+        if (node === selectedNode) {
+          offsetNode = node
+          if (node.tagName) offset += 2 + node.tagName.length
+          break
+        }
+        if (node.tagName) offset += node.outerHTML.length
+        else offset += node.textContent.length
+        offsetNode = node
+      }
+      return offset + selection.anchorOffset + 3
+    } else {
+      return selection.anchorOffset
+    }
   } else {
     return 0
   }
 }
 
 function setCaretPos (caretPos:number) {
-  if (innerContent.value) {
+  const innerContent = getInnerContent()
+  if (innerContent) {
     if (props.block.type === BlockType.Text) {
       // content.value.editor.commands.focus(caretPos)
       let offsetNode, offset = 0
@@ -420,8 +491,8 @@ function setCaretPos (caretPos:number) {
     } else {
       const selection = window.getSelection()
       const range = document.createRange()
-      range.setStart(innerContent.value, caretPos)
-      range.setEnd(innerContent.value, caretPos)
+      range.setStart(innerContent, caretPos)
+      range.setEnd(innerContent, caretPos)
       selection.removeAllRanges()
       selection.addRange(range)
     }
@@ -430,9 +501,10 @@ function setCaretPos (caretPos:number) {
 
 function getStartCoordinates () {
   let x = 0, y = 0
-  if (firstChild.value) {
+  const firstChild = getFirstChild()
+  if (firstChild) {
     const range = document.createRange()
-    range.selectNodeContents(firstChild.value)
+    range.selectNodeContents(firstChild)
     range.collapse(true)
     const rect = range.getBoundingClientRect()
     x = rect.left
@@ -443,9 +515,10 @@ function getStartCoordinates () {
 
 function getEndCoordinates () {
   let x = 0, y = 0
-  if (lastChild.value) {
+  const lastChild = getLastChild()
+  if (lastChild) {
     const range = document.createRange()
-    range.selectNodeContents(lastChild.value)
+    range.selectNodeContents(lastChild)
     range.collapse()
     const rect = range.getBoundingClientRect()
     x = rect.left
@@ -478,8 +551,8 @@ function clearSearch (startIdx: number, endIdx: number) {
 
 defineExpose({
   content,
-  textContent,
-  htmlContent,
+  getTextContent,
+  getHtmlContent,
   moveToStart,
   moveToEnd,
   moveToFirstLine,

@@ -132,14 +132,14 @@ function setBlockType (blockIdx: number, type: BlockType) {
 function merge (blockIdx: number) {
   if (blocks.value[blockIdx-1].type === BlockType.Text) {
     const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
-    blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].htmlContent
+    blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].getHtmlContent()
     setTimeout(() => {
       blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
       blocks.value.splice(blockIdx, 1)
     })
   } else if ([BlockType.H1, BlockType.H2].includes(blocks.value[blockIdx-1].type)) {
     const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
-    blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].textContent
+    blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].getTextContent()
     setTimeout(() => {
       blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
       blocks.value.splice(blockIdx, 1)
@@ -154,6 +154,8 @@ function merge (blockIdx: number) {
 
 function split (blockIdx: number) {
   const caretPos = blockElements.value[blockIdx].getCaretPos()
+  console.log(caretPos)
+  console.log(blocks.value[blockIdx].details.value.slice(0, caretPos))
   insertBlock(blockIdx)
   blocks.value[blockIdx+1].details.value = blocks.value[blockIdx].details.value.slice(caretPos)
   blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos)
