@@ -6,7 +6,8 @@
       </pre>
     </div>
     <div class="max-w-prose mx-auto my-24">
-      <h1 id="title" class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12" contenteditable="true" spellcheck="false">
+      <h1 id="title" contenteditable="true" spellcheck="false"
+        class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12">
         {{ title || '' }}
       </h1>
       <!-- <h1 id="title" class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12" contenteditable="true" spellcheck="false"
@@ -37,7 +38,6 @@
           </div>
         </transition-group>
       </draggable>
-      <div @click="viewBlocks" class="bg-black text-white rounded px-3 py-1 w-max font-bold">Log</div>
     </div>
   </div>
 </template>
@@ -148,9 +148,5 @@ function split (blockIdx: number) {
   insertBlock(blockIdx)
   blocks.value[blockIdx+1].details.value = blocks.value[blockIdx].details.value.slice(caretPos)
   blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos)
-}
-
-function viewBlocks () {
-  console.log(blocks.value)
 }
 </script>
