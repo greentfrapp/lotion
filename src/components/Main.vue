@@ -6,7 +6,8 @@
       </pre>
     </div>
     <div class="max-w-prose mx-auto my-24">
-      <h1 id="title" class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12" contenteditable="true" spellcheck="false">
+      <h1 id="title" contenteditable="true" spellcheck="false"
+        class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12">
         {{ title || '' }}
       </h1>
       <!-- <h1 id="title" class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12" contenteditable="true" spellcheck="false"
@@ -74,34 +75,44 @@ const dragOptions = {
   ghostClass: 'ghost',
 }
 
-const title = ref('Lotion')
+const title = ref('🧴 Lotion')
 const blocks = ref([{
   type: BlockType.H1,
   details: {
-    value: 'Test'
+    value: 'Get Started'
   },
 }, {
   type: BlockType.Divider,
   details: {},
 }, {
-  type: BlockType.H1,
+  type: BlockType.Text,
   details: {
-    value: '123'
+    value: '👋 Welcome! This is a private page for you to play around with. '
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '456'
+    value: 'Give these things a try:'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '"No" is a song by American singer-songwriter Meghan Trainor from her second major label studio album Thank You (2016). Ricky Reed (pictured) produced the song and wrote it with Trainor and Jacob Kasher Hindlin; Epic Records released it as the album\'s lead single on March 4, 2016. A dance-pop song inspired by 1990s music and R&B, "No" has lyrics about sexual consent and women\'s empowerment which encourage them to reject unwanted advances from men.'
+    value: '1. Add a new line and insert something'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '123'
+    value: '2. Drag the ⋮⋮ button on the left of this to reorder'
+  },
+}, {
+  type: BlockType.Text,
+  details: {
+    value: '3. Click the trash icon to delete a block'
+  },
+}, {
+  type: BlockType.Text,
+  details: {
+    value: '4. Type \'/\' for slash commands'
   },
 }, ])
 
