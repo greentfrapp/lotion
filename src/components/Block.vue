@@ -25,12 +25,14 @@
       <!-- Actual content -->
       <editor v-if="props.block.type === BlockType.Text" ref="content"
         v-model="props.block.details.value" @keydown.capture="keyDownHandler"
+        @mouseup="test"
         class="py-1.5" />
       <div v-else ref="content"
         :contenteditable="![BlockType.Divider].includes(block.type)" spellcheck="false"
         @blur="block.details.value=content.innerHTML"
         @keydown="keyDownHandler"
         @keyup="keyUpHandler"
+        @mouseup="test"
         class="focus:outline-none focus-visible:outline-none w-full"
         :class="{
           'py-1.5': block.type === BlockType.Text,
@@ -122,9 +124,6 @@ const innerContent = computed(() => {
     } else {
       return content.value.$el.firstChild.firstChild.firstChild
     }
-    // console.log(content.value.$el.firstChild.firstChild.childNodes.length)
-    // console.log(content.value.$el.firstChild.firstChild.parentElement)
-    // console.log(content.value.$el.firstChild.firstChild.firstChild)
     return content.value.$el.firstChild.firstChild.firstChild
   } else {
     return content.value.firstChild || content.value
@@ -132,7 +131,9 @@ const innerContent = computed(() => {
 })
 
 function test () {
-  // moveToStart()
+  // moveToEnd()
+  // setCaretPos(0)
+  // console.log(getCaretCoordinates())
   // console.log(content.value)
   // content.value.editor.commands.focus(2)
   // console.log(content.value.editor.commands.setTextSelection)
@@ -172,8 +173,6 @@ function keyDownHandler (event:KeyboardEvent) {
       emit('moveToPrevChar')
     }
   } else if (event.key === 'ArrowRight') {
-    // console.log(getEndCoordinates())
-    // console.log(getCaretCoordinates())
     // If at last character, move to next block
     if (atLastChar()) {
       event.preventDefault()
@@ -195,10 +194,9 @@ function keyDownHandler (event:KeyboardEvent) {
     }
   } else if (event.key === 'Enter') {
     event.preventDefault()
-    console.log(content.value)
-    // if (!(menu.value && menu.value.open)) {
-    //   emit('split')
-    // }
+    if (!(menu.value && menu.value.open)) {
+      emit('split')
+    }
   }
   return
   if (event.key === 'ArrowUp') {
@@ -293,8 +291,7 @@ function highlightedLength () {
 
 function moveToStart () {
   if (isContentBlock()) {
-    console.log(innerContent.value)
-    if (innerContent.value) {
+    if (firstChild.value) {
       const selection = window.getSelection()
       const range = document.createRange()
       range.selectNodeContents(firstChild.value)
@@ -309,7 +306,7 @@ function moveToStart () {
 
 function moveToEnd () {
   if (isContentBlock()) {
-    if (innerContent.value) {
+    if (lastChild.value) {
       const selection = window.getSelection()
       const range = document.createRange()
       range.selectNodeContents(lastChild.value)
@@ -324,28 +321,20 @@ function moveToEnd () {
 
 async function moveToFirstLine () {
   if (isContentBlock()) {
-    if (!innerContent.value) {
+    if (!textContent.value) {
       moveToStart()
     } else {
       let prevCoord = getCaretCoordinates()
-      console.log(prevCoord)
       let prevDist = 99999
-      let caretPos = 0
+      let caretPos = 1
       while (true) {
         setCaretPos(caretPos)
-        let newCoord
-        await new Promise(resolve => setTimeout(() => {
-          newCoord = getCaretCoordinates()
-          console.log(newCoord)
-          resolve()
-        }), 0)
+        const newCoord = getCaretCoordinates()
         const newDist = Math.abs(newCoord.x - prevCoord.x)
         if (newDist > prevDist) {
-          console.log('short')
           if (caretPos > 0) setCaretPos(caretPos - 1)
           break
-        } else if (caretPos === innerContent.value.length || caretPos > 10) {
-          console.log('end')
+        } else if (caretPos === textContent.value.length || caretPos > 999) {
           // Reached end of line
           break
         } else {
@@ -359,20 +348,20 @@ async function moveToFirstLine () {
   }
 }
 
-function moveToLastLine () {
+async function moveToLastLine () {
   if (isContentBlock()) {
-    if (!innerContent.value) {
+    if (!textContent.value) {
       moveToStart()
     } else {
       let prevCoord = getCaretCoordinates()
       let prevDist = 99999
-      let caretPos = innerContent.value ? innerContent.value.length : 0
+      let caretPos = textContent.value.length
       while (true) {
         setCaretPos(caretPos)
         const newCoord = getCaretCoordinates()
         const newDist = Math.abs(newCoord.x - prevCoord.x)
         if (newDist > prevDist) {
-          if (caretPos < innerContent.value.length) setCaretPos(caretPos + 1)
+          if (caretPos < textContent.value.length) setCaretPos(caretPos + 1)
           break
         } else if (caretPos === 0) {
           // Reached start of line
@@ -400,8 +389,8 @@ function getCaretCoordinates () {
 }
 
 function getCaretPos () {
-  if (innerContent.value) {
-    const selection = window.getSelection()
+  const selection = window.getSelection()
+  if (selection) {
     return selection.anchorOffset
   } else {
     return 0
@@ -411,7 +400,23 @@ function getCaretPos () {
 function setCaretPos (caretPos:number) {
   if (innerContent.value) {
     if (props.block.type === BlockType.Text) {
-      content.value.editor.commands.focus(caretPos)
+      // content.value.editor.commands.focus(caretPos)
+      let offsetNode, offset = 0
+      const numNodes = content.value.$el.firstChild.firstChild.childNodes.length
+      for (const [i, node] of content.value.$el.firstChild.firstChild.childNodes.entries()) {
+        if (offset + node.textContent.length > caretPos || i === numNodes - 1) {
+          offsetNode = node
+          break
+        }
+        offset += node.textContent.length
+        offsetNode = node
+      }
+      const selection = window.getSelection()
+      const range = document.createRange()
+      range.setStart(offsetNode.firstChild || offsetNode, caretPos - offset)
+      range.setEnd(offsetNode.firstChild || offsetNode, caretPos - offset)
+      selection.removeAllRanges()
+      selection.addRange(range)
     } else {
       const selection = window.getSelection()
       const range = document.createRange()

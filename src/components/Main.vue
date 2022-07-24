@@ -167,10 +167,10 @@ const markdownBlocks = computed(() => {
         type: BlockType.Text,
         details: {
           value: block.details.value
-            .replace('<p>', '')
-            .replace('</p>', '')
-            .replace('<strong>', '**')
-            .replace('</strong>', '**')
+            .replaceAll('<p>', '')
+            .replaceAll('</p>', '')
+            .replaceAll('<strong>', '**')
+            .replaceAll('</strong>', '**')
         }
       }
     } else {
