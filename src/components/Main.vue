@@ -2,7 +2,7 @@
   <div class="grid grid-cols-2">
     <div class="h-screen overflow-y-auto bg-neutral-50">
       <pre class="whitespace-pre-wrap p-10">
-      {{ JSON.stringify(markdownBlocks, null, 2) }}
+{{ JSON.stringify(markdownBlocks, null, 2) }}
       </pre>
     </div>
     <div class="w-[65ch] mx-auto my-24">
