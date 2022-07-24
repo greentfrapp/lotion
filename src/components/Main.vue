@@ -2,7 +2,7 @@
   <div class="grid grid-cols-2">
     <div class="h-screen overflow-y-auto">
       <pre class="whitespace-pre-wrap p-10">
-      {{ JSON.stringify(blocks, false, 2) }}
+      {{ JSON.stringify(markdownBlocks, false, 2) }}
       </pre>
     </div>
     <div class="max-w-prose mx-auto my-24">
@@ -37,7 +37,6 @@
           </div>
         </transition-group>
       </draggable>
-      <div @click="viewBlocks" class="bg-black text-white rounded px-3 py-1 w-max font-bold">Log</div>
     </div>
   </div>
 </template>
@@ -63,7 +62,7 @@
 </style>
 
 <script setup lang="ts">
-import { ref, onBeforeUpdate } from 'vue'
+import { ref, computed, onBeforeUpdate } from 'vue'
 import { VueDraggableNext as draggable } from 'vue-draggable-next'
 import { BlockType } from '@/utils/types'
 import Block from './Block.vue'
@@ -85,7 +84,7 @@ const blocks = ref([{
   type: BlockType.Divider,
   details: {},
 }, {
-  type: BlockType.Text,
+  type: BlockType.H1,
   details: {
     value: '123'
   },
@@ -123,24 +122,34 @@ function insertBlock (blockIdx: number) {
 }
 
 function setBlockType (blockIdx: number, type: BlockType) {
+  if (blocks.value[blockIdx].type === BlockType.Text) {
+    blocks.value[blockIdx].details.value = blockElements.value[blockIdx].content.editor.options.content
+  }
   blocks.value[blockIdx].type = type
   if (type === BlockType.Divider) insertBlock(blockIdx)
 }
 
 function merge (blockIdx: number) {
-  if (![BlockType.Text, BlockType.H1, BlockType.H2].includes(blocks.value[blockIdx-1].type)) {
+  if (blocks.value[blockIdx-1].type === BlockType.Text) {
+    const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
+    blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].htmlContent
+    setTimeout(() => {
+      blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
+      blocks.value.splice(blockIdx, 1)
+    })
+  } else if ([BlockType.H1, BlockType.H2].includes(blocks.value[blockIdx-1].type)) {
+    const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
+    blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].textContent
+    setTimeout(() => {
+      blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
+      blocks.value.splice(blockIdx, 1)
+    })
+  } else {
     blocks.value.splice(blockIdx-1, 1)
     setTimeout(() => {
       blockElements.value[blockIdx-1].moveToStart()
     })
-    return
   }
-  const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
-  blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].content.innerText
-  setTimeout(() => {
-    blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
-    blocks.value.splice(blockIdx, 1)
-  })
 }
 
 function split (blockIdx: number) {
@@ -150,7 +159,23 @@ function split (blockIdx: number) {
   blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos)
 }
 
-function viewBlocks () {
-  console.log(blocks.value)
-}
+const markdownBlocks = computed(() => {
+  // return blocks.value
+  return blocks.value.map(block => {
+    if (block.type === BlockType.Text) {
+      return {
+        type: BlockType.Text,
+        details: {
+          value: block.details.value
+            .replace('<p>', '')
+            .replace('</p>', '')
+            .replace('<strong>', '**')
+            .replace('</strong>', '**')
+        }
+      }
+    } else {
+      return block
+    }
+  })
+})
 </script>
