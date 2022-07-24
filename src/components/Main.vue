@@ -1,11 +1,11 @@
 <template>
   <div class="grid grid-cols-2">
-    <div class="h-screen overflow-y-auto">
+    <div class="h-screen overflow-y-auto bg-neutral-50">
       <pre class="whitespace-pre-wrap p-10">
       {{ JSON.stringify(markdownBlocks, false, 2) }}
       </pre>
     </div>
-    <div class="max-w-prose mx-auto my-24">
+    <div class="w-[65ch] mx-auto my-24">
       <h1 id="title" contenteditable="true" spellcheck="false"
         class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12">
         {{ title || '' }}
@@ -97,22 +97,37 @@ const blocks = ref([{
 }, {
   type: BlockType.Text,
   details: {
-    value: '1. Add a new line and insert something'
+    value: '1. Hover on the left of each line for quick actions'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '2. Drag the ⋮⋮ button on the left of this to reorder'
+    value: '2. Click on the + button to add a new line'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '3. Click the trash icon to delete a block'
+    value: '3. Drag the ⋮⋮ button to reorder'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '4. Type \'/\' for slash commands'
+    value: '4. Click the trash icon to delete this block'
+  },
+}, {
+  type: BlockType.Text,
+  details: {
+    value: '5. <strong>Bold</strong> and <em>italicize</em> using markdown e.g. *italic* or **bold**'
+  },
+}, {
+  type: BlockType.Text,
+  details: {
+    value: '6. Add headers and dividers with \'#\', \'##\' or \'---\' followed by a space'
+  },
+}, {
+  type: BlockType.Text,
+  details: {
+    value: '7. Type \'/\' for a menu to quickly switch blocks and search by typing'
   },
 }, ])
 
