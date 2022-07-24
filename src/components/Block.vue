@@ -24,7 +24,7 @@
       <!-- Actual content -->
       <div ref="content"
         :contenteditable="![BlockType.Divider].includes(block.type)" spellcheck="false"
-        @blur="block.details.value=content.innerHTML"
+        @blur="block.details.value=content.innerText"
         @keydown="keyDownHandler"
         @keyup="keyUpHandler"
         class="focus:outline-none focus-visible:outline-none w-full"
