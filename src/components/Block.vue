@@ -368,6 +368,34 @@ function getCaretPos () {
   }
 }
 
+function getCaretPosWithoutTags () {
+  const selection = window.getSelection()
+  if (selection) {
+    if (props.block.type === BlockType.Text) {
+      let offsetNode, offset = 0, tag = null
+      const numNodes = content.value.$el.firstChild.firstChild.childNodes.length
+      let selectedNode = selection.anchorNode
+      if (['STRONG', 'EM'].includes(selectedNode.parentElement.tagName)) {
+        selectedNode = selectedNode.parentElement
+        tag = selectedNode.tagName.toLowerCase()
+      }
+      for (const [i, node] of content.value.$el.firstChild.firstChild.childNodes.entries()) {
+        if (node === selectedNode) {
+          offsetNode = node
+          break
+        }
+        offset += node.textContent.length
+        offsetNode = node
+      }
+      return { pos: offset + selection.anchorOffset, tag }
+    } else {
+      return { pos: selection.anchorOffset }
+    }
+  } else {
+    return { pos: 0 }
+  }
+}
+
 function setCaretPos (caretPos:number) {
   const innerContent = getInnerContent()
   if (innerContent) {
@@ -447,9 +475,21 @@ function parseMarkdown (event:Event) {
   }
 }
 
-function clearSearch (startIdx: number, endIdx: number) {
-  // content.value.innerText = content.value.innerText.substring(0, startIdx) + content.value.innerText.substring(endIdx)
-  // setCaretPos(startIdx)
+function clearSearch (searchTermLength: number) {
+  if (props.block.type === BlockType.H1 || true) {
+    const pos = getCaretPosWithoutTags().pos
+    const startIdx = pos - searchTermLength - 1
+    const endIdx = pos
+    setTimeout(() => {
+      try {
+        props.block.details.value = content.value.innerText.substring(0, startIdx) + content.value.innerText.substring(endIdx)
+        content.value.innerText = content.value.innerText.substring(0, startIdx) + content.value.innerText.substring(endIdx)
+      } catch {
+
+      }
+      setTimeout(() => setCaretPos(startIdx))
+    })
+  }
 }
 
 defineExpose({

@@ -136,23 +136,14 @@ document.addEventListener('keydown', (event:KeyboardEvent) => {
       //  Move down
       active.value = Math.min(active.value + 1, options.value.length - 1)
     }
-    // const option = document.getElementById(`${id}-option-${active.value}`)
-    // option?.scrollIntoView({
-    //   behavior: 'smooth',
-    //   block: 'nearest',
-    //   inline: 'nearest',
-    // })
   } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
     // Left/right will exit menu
-    if (searchTerm.value.length === 0) emit('closeMenu')
+    if (searchTerm.value.length === 0) open.value = false
   } else if (event.key === 'Enter') {
     // Enter selects menu option
     event.preventDefault()
     const callback = options.value[active.value].callback
     if (callback) callback()
-    // Don't close menu for Settings like toggling "Show label" or "Required"
-    if (options.value[active.value].type !== 'Settings') emit('closeMenu')
-    else if (options.value[active.value].label === 'Edit label') emit('closeMenu')
   } else if (event.key === 'Escape') {
     // Escape closes menu
     open.value = false
@@ -196,11 +187,12 @@ const options = computed(() => {
 })
 
 function setBlockType (blockType:BlockType) {
+  emit('clearSearch', searchTerm.value.length)
   emit('setBlockType', blockType)
-  const selection = window.getSelection()
-  if (selection) {
-    emit('clearSearch', selection.anchorOffset - searchTerm.value.length - 1, selection.anchorOffset)
-  }
+  // const selection = window.getSelection()
+  // if (selection) {
+  //   emit('clearSearch', selection.anchorOffset - searchTerm.value.length - 1, selection.anchorOffset)
+  // }
   searchTerm.value = ''
   open.value = false
 }
