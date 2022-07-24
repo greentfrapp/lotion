@@ -75,11 +75,11 @@ const dragOptions = {
   ghostClass: 'ghost',
 }
 
-const title = ref('Lotion')
+const title = ref('🧴 Lotion')
 const blocks = ref([{
   type: BlockType.H1,
   details: {
-    value: 'Test'
+    value: 'Get Started'
   },
 }, {
   type: BlockType.Divider,
@@ -87,22 +87,32 @@ const blocks = ref([{
 }, {
   type: BlockType.Text,
   details: {
-    value: '123'
+    value: '👋 Welcome! This is a private page for you to play around with. '
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '456'
+    value: 'Give these things a try:'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '"No" is a song by American singer-songwriter Meghan Trainor from her second major label studio album Thank You (2016). Ricky Reed (pictured) produced the song and wrote it with Trainor and Jacob Kasher Hindlin; Epic Records released it as the album\'s lead single on March 4, 2016. A dance-pop song inspired by 1990s music and R&B, "No" has lyrics about sexual consent and women\'s empowerment which encourage them to reject unwanted advances from men.'
+    value: 'Add a new line and insert something'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '123'
+    value: 'Drag the ⋮⋮ button on the left of this to-do to reorder'
+  },
+}, {
+  type: BlockType.Text,
+  details: {
+    value: 'Click the trash icon to delete a block'
+  },
+}, {
+  type: BlockType.Text,
+  details: {
+    value: 'Type \'/\' for slash commands'
   },
 }, ])
 
