@@ -8,7 +8,8 @@
 }
 </style>
 
-<script>
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
 import Text from '@tiptap/extension-text'
@@ -17,65 +18,53 @@ import Italic from '@tiptap/extension-italic'
 import History from '@tiptap/extension-history'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 
-export default {
-  components: {
-    EditorContent,
+const props = defineProps({
+  modelValue: {
+    type: String,
+    default: '',
   },
+})
 
-  props: {
-    modelValue: {
-      type: String,
-      default: '',
-    },
-  },
+const emit = defineEmits(['update:modelValue'])
 
-  emits: ['update:modelValue'],
+const editor = ref<any>(null)
 
-  data() {
-    return {
-      editor: null,
+watch(props, newProps => {
+    // HTML
+    const isSame = editor.value?.getHTML() === newProps.modelValue
+    // JSON
+    // const isSame = JSON.stringify(this.editor.getJSON()) === JSON.stringify(value)
+
+    if (isSame) {
+      return
     }
-  },
 
-  watch: {
-    modelValue(value) {
+    editor.value?.commands.setContent(newProps.modelValue, false)
+  }
+)
+
+onMounted(() => {
+  editor.value = new Editor({
+    extensions: [
+      Document,
+      Paragraph,
+      Text,
+      Bold,
+      Italic,
+      History,
+    ],
+    content: props.modelValue,
+    onUpdate: () => {
       // HTML
-      const isSame = this.editor.getHTML() === value
+      emit('update:modelValue', editor.value?.getHTML())
 
       // JSON
-      // const isSame = JSON.stringify(this.editor.getJSON()) === JSON.stringify(value)
-
-      if (isSame) {
-        return
-      }
-
-      this.editor.commands.setContent(value, false)
+      // this.$emit('update:modelValue', this.editor.getJSON())
     },
-  },
+  })
+})
 
-  mounted() {
-    this.editor = new Editor({
-      extensions: [
-        Document,
-        Paragraph,
-        Text,
-        Bold,
-        Italic,
-        History,
-      ],
-      content: this.modelValue,
-      onUpdate: () => {
-        // HTML
-        this.$emit('update:modelValue', this.$el.innerText ? this.editor.getHTML() : '')
-
-        // JSON
-        // this.$emit('update:modelValue', this.editor.getJSON())
-      },
-    })
-  },
-
-  beforeUnmount() {
-    this.editor.destroy()
-  },
-}
+onBeforeUnmount(() => {
+  editor.value?.destroy()
+})
 </script>

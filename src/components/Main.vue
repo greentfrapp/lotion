@@ -2,7 +2,7 @@
   <div class="grid grid-cols-2">
     <div class="h-screen overflow-y-auto bg-neutral-50">
       <pre class="whitespace-pre-wrap p-10">
-      {{ JSON.stringify(markdownBlocks, false, 2) }}
+      {{ JSON.stringify(markdownBlocks, null, 2) }}
       </pre>
     </div>
     <div class="w-[65ch] mx-auto my-24">
@@ -24,7 +24,7 @@
           <div class="list-group-item relative group flex rounded-lg"
             v-for="block, i in blocks" :key="i">
             <Block :block="block"
-              :ref="el => blockElements[i] = el"
+              :ref="el => blockElements[i] = (el as unknown as typeof Block)"
               @deleteBlock="blocks.splice(i, 1)"
               @newBlock="insertBlock(i)"
               @moveToPrevChar="blockElements[i-1] ? blockElements[i-1].moveToEnd() : null"
@@ -87,55 +87,55 @@ const blocks = ref([{
 }, {
   type: BlockType.Text,
   details: {
-    value: '👋 Welcome! This is a private page for you to play around with. '
+    value: '<p>👋 Welcome! This is a private page for you to play around with.</p>'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: 'Give these things a try:'
+    value: '<p>Give these things a try:</p>'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '1. Hover on the left of each line for quick actions'
+    value: '<p>1. Hover on the left of each line for quick actions</p>'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '2. Click on the + button to add a new line'
+    value: '<p>2. Click on the + button to add a new line</p>'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '3. Drag the ⋮⋮ button to reorder'
+    value: '<p>3. Drag the ⋮⋮ button to reorder</p>'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '4. Click the trash icon to delete this block'
+    value: '<p>4. Click the trash icon to delete this block</p>'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '5. <strong>Bold</strong> and <em>italicize</em> using markdown e.g. *italic* or **bold**'
+    value: '<p>5. <strong>Bold</strong> and <em>italicize</em> using markdown e.g. *italic* or **bold**</p>'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '6. Add headers and dividers with \'#\', \'##\' or \'---\' followed by a space'
+    value: '<p>6. Add headers and dividers with \'#\', \'##\' or \'---\' followed by a space</p>'
   },
 }, {
   type: BlockType.Text,
   details: {
-    value: '7. Type \'/\' for a menu to quickly switch blocks and search by typing'
+    value: '<p>7. Type \'/\' for a menu to quickly switch blocks and search by typing</p>'
   },
-}, ])
+}, ] as {type: BlockType, details: any}[])
 
 onBeforeUpdate(() => {
   blockElements.value = []
 })
 
-const blockElements = ref<Block[]>([])
+const blockElements = ref<typeof Block[]>([])
 
 function insertBlock (blockIdx: number) {
   blocks.value.splice(blockIdx + 1, 0, {
@@ -161,13 +161,13 @@ function setBlockType (blockIdx: number, type: BlockType) {
 function merge (blockIdx: number) {
   if (blocks.value[blockIdx-1].type === BlockType.Text) {
     const prevBlockContentLength = blockElements.value[blockIdx-1].getTextContent().length
-    blocks.value[blockIdx-1].details.value = ('<p>' + blocks.value[blockIdx-1].details.value.replace('<p>', '').replace('</p>', '') + blockElements.value[blockIdx].getHtmlContent().replace('<p>', '').replace('</p>', '') + '</p>').replace('</strong><strong>', '').replace('</em><em>', '')
+    blocks.value[blockIdx-1].details.value = ('<p>' + (blocks.value[blockIdx-1] as any).details.value.replace('<p>', '').replace('</p>', '') + blockElements.value[blockIdx].getHtmlContent().replace('<p>', '').replace('</p>', '') + '</p>').replace('</strong><strong>', '').replace('</em><em>', '')
     setTimeout(() => {
       blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)
       blocks.value.splice(blockIdx, 1)
     })
   } else if ([BlockType.H1, BlockType.H2].includes(blocks.value[blockIdx-1].type)) {
-    const prevBlockContentLength = blocks.value[blockIdx-1].details.value.length
+    const prevBlockContentLength = (blocks.value[blockIdx-1] as any).details.value.length
     blocks.value[blockIdx-1].details.value += blockElements.value[blockIdx].getTextContent()
     setTimeout(() => {
       blockElements.value[blockIdx-1].setCaretPos(prevBlockContentLength)

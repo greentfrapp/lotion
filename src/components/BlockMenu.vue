@@ -19,51 +19,6 @@
               {{ searchTerm }}
             </div>
           </div>
-          <!-- Settings like "Required" or "Show label" -->
-          <div class="px-2 py-2" v-if="options.filter(option => option.type === 'Settings').length">
-            <div class="px-2 pb-2 font-semibold uppercase text-xs text-neutral-400">Settings</div>
-            <div v-for="option, i in options.filter(option => option.type === 'Settings')"
-              class="px-2 py-1 rounded flex justify-between items-center"
-              :class="[active === i ? 'bg-neutral-100' : '']"
-              @click="$event => { $event.stopPropagation(); if (option.callback) option.callback();}"
-              @mouseover="active = i">
-              <span class="truncate">{{ option.label }}</span>
-              <div v-if="option.label === 'Show label'">
-                <v-icon v-if="block.details.hasLabel" name="la-toggle-on-solid" class="w-5 h-5" />
-                <v-icon v-else name="la-toggle-off-solid" class="w-5 h-5" />
-              </div>
-              <div v-else-if="option.label === 'Required'">
-                <v-icon v-if="block.details.required" name="la-toggle-on-solid" class="w-5 h-5" />
-                <v-icon v-else name="la-toggle-off-solid" class="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-          <!-- Turn into (another input block)  -->
-          <div class="px-2 py-2" v-if="options.filter(option => option.type === 'Turn into input').length">
-            <div class="px-2 pb-2 font-semibold uppercase text-xs text-neutral-400">Turn into</div>
-            <div v-for="option, i in options.filter(option => option.type === 'Turn into input')"
-              class="px-2 py-1 rounded flex items-center gap-2"
-              :class="[active === (i + options.filter(option => option.type === 'Settings').length) ? 'bg-neutral-100' : '']"
-              @click="option.callback"
-              @mouseover="active = (i + options.filter(option => option.type === 'Settings').length)">
-              <v-icon v-if="option.icon"
-                :name="option.icon" class="w-5 h-5"/>
-              <span class="truncate">{{ option.label }}</span>
-            </div>
-          </div>
-          <!-- "Link column" or "Change linked column"  -->
-          <div class="px-2 py-2" v-if="options.filter(option => option.type === 'Link column').length">
-            <div class="px-2 pb-2 font-semibold uppercase text-xs text-neutral-400">{{ props.block.details.attributeId ? 'Change linked column' : 'Link column' }}</div>
-            <div v-for="option, i in options.filter(option => option.type === 'Link column')"
-              class="px-2 py-1 rounded flex items-center gap-2"
-              :class="[active === (i + options.filter(option => ['Settings', 'Turn into input'].includes(option.type)).length) ? 'bg-neutral-100' : '']"
-              @click="option.callback"
-              @mouseover="active = (i + options.filter(option => ['Settings', 'Turn into input'].includes(option.type)).length)">
-              <v-icon v-if="option.icon"
-                :name="option.icon" class="w-5 h-5"/>
-              <span class="truncate">{{ option.label }}</span>
-            </div>
-          </div>
           <!-- Turn into (another read-only block like Text, Heading or Divider) -->
           <div class="px-2 py-2" v-if="options.filter(option => option.type === 'Turn into').length">
             <div class="px-2 pb-2 font-semibold uppercase text-xs text-neutral-400">Turn into</div>
@@ -84,28 +39,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, PropType } from 'vue'
-import { 
-  Block,
-  BlockType,
-} from '@/utils/types'
+import { ref, computed, PropType } from 'vue'
+import { BlockType } from '@/utils/types'
 import Tooltip from './elements/Tooltip.vue'
 
-const props = defineProps({
-  block: {
-    type: Object as PropType<Block>,
-    required: true,
-  },
-})
-
 const emit = defineEmits([
-  'closeMenu',
-  'openMenu',
   'setBlockType',
-  'setAttribute',
-  'editLabel',
-  'toggleLabel',
-  'toggleRequired',
+  'clearSearch',
 ])
 
 const open = ref(false)
