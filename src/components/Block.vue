@@ -205,6 +205,8 @@ function keyDownHandler (event:KeyboardEvent) {
       emit('moveToPrevLine')
     }
   } else if (event.key === 'ArrowDown') {
+    console.log(getEndCoordinates())
+    console.log(getCaretCoordinates())
     if (menu.value.open) {
       event.preventDefault()
     }
@@ -442,12 +444,14 @@ function getCaretCoordinates () {
 function getCaretPos () {
   const selection = window.getSelection()
   if (selection) {
-    console.log(selection.anchorNode)
     if (props.block.type === BlockType.Text) {
-      let offsetNode, offset = 0
+      let offsetNode, offset = 0, tag = null
       const numNodes = content.value.$el.firstChild.firstChild.childNodes.length
       let selectedNode = selection.anchorNode
-      if (selectedNode.parentElement.tagName === 'STRONG') selectedNode = selectedNode.parentElement
+      if (['STRONG', 'EM'].includes(selectedNode.parentElement.tagName)) {
+        selectedNode = selectedNode.parentElement
+        tag = selectedNode.tagName.toLowerCase()
+      }
       for (const [i, node] of content.value.$el.firstChild.firstChild.childNodes.entries()) {
         if (node === selectedNode) {
           offsetNode = node
@@ -458,12 +462,12 @@ function getCaretPos () {
         else offset += node.textContent.length
         offsetNode = node
       }
-      return offset + selection.anchorOffset + 3
+      return { pos: offset + selection.anchorOffset + 3, tag }
     } else {
-      return selection.anchorOffset
+      return { pos: selection.anchorOffset }
     }
   } else {
-    return 0
+    return { pos: 0 }
   }
 }
 
@@ -504,7 +508,7 @@ function getStartCoordinates () {
   const firstChild = getFirstChild()
   if (firstChild) {
     const range = document.createRange()
-    range.selectNodeContents(firstChild)
+    range.selectNodeContents(firstChild.firstChild || firstChild)
     range.collapse(true)
     const rect = range.getBoundingClientRect()
     x = rect.left
@@ -518,9 +522,10 @@ function getEndCoordinates () {
   const lastChild = getLastChild()
   if (lastChild) {
     const range = document.createRange()
-    range.selectNodeContents(lastChild)
+    range.selectNodeContents(lastChild.firstChild || lastChild)
     range.collapse()
     const rect = range.getBoundingClientRect()
+    console.log(rect)
     x = rect.left
     y = rect.top
   }

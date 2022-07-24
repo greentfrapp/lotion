@@ -155,10 +155,10 @@ function merge (blockIdx: number) {
 function split (blockIdx: number) {
   const caretPos = blockElements.value[blockIdx].getCaretPos()
   console.log(caretPos)
-  console.log(blocks.value[blockIdx].details.value.slice(0, caretPos))
+  console.log(blocks.value[blockIdx].details.value.slice(0, caretPos.pos))
   insertBlock(blockIdx)
-  blocks.value[blockIdx+1].details.value = blocks.value[blockIdx].details.value.slice(caretPos)
-  blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos)
+  blocks.value[blockIdx+1].details.value = (caretPos.tag ? `<p><${caretPos.tag}>` : '') + blocks.value[blockIdx].details.value.slice(caretPos.pos)
+  blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos.pos) + (caretPos.tag ? `</${caretPos.tag}></p>` : '')
 }
 
 const markdownBlocks = computed(() => {
@@ -173,6 +173,8 @@ const markdownBlocks = computed(() => {
             .replaceAll('</p>', '')
             .replaceAll('<strong>', '**')
             .replaceAll('</strong>', '**')
+            .replaceAll('<em>', '*')
+            .replaceAll('</em>', '*')
         }
       }
     } else {
