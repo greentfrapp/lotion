@@ -1,49 +1,52 @@
 <template>
-  <div class="grid grid-cols-2">
-    <div class="h-screen overflow-y-auto bg-neutral-50">
+  <div class="flex">
+    <div class="sticky top-0 h-screen overflow-y-auto bg-neutral-50">
       <pre class="whitespace-pre-wrap p-10">
 {{ JSON.stringify(markdownBlocks, null, 2) }}
       </pre>
     </div>
-    <div class="w-[65ch] mx-auto my-24">
-      <h1 id="title" contenteditable="true" spellcheck="false"
-        class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12">
-        {{ title || '' }}
-      </h1>
-      <!-- <h1 id="title" class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12" contenteditable="true" spellcheck="false"
-        :class="store.title ? '' : 'empty'"
-        @blur="updateTitle($event)"
-        @keydown.enter="$event.preventDefault(); appendBlock(-1);"
-        @keydown.down="moveToBlocks"
-        data-ph="Untitled">
-        {{ store.title || '' }}
-      </h1> -->
-      <draggable tag="div" :list="blocks"
-        v-bind="dragOptions" class="-ml-24 space-y-2 pb-4">
-        <transition-group type="transition" name="flip-list">
-          <div class="list-group-item relative group flex rounded-lg"
-            v-for="block, i in blocks" :key="i">
-            <Block :block="block"
-              :ref="el => blockElements[i] = (el as unknown as typeof Block)"
-              @deleteBlock="blocks.splice(i, 1)"
-              @newBlock="insertBlock(i)"
-              @moveToPrevChar="blockElements[i-1] ? blockElements[i-1].moveToEnd() : null"
-              @moveToNextChar="blockElements[i+1] ? blockElements[i+1].moveToStart() : null"
-              @moveToPrevLine="blockElements[i-1] ? blockElements[i-1].moveToLastLine() : null"
-              @moveToNextLine="blockElements[i+1] ? blockElements[i+1].moveToFirstLine() : null"
-              @merge="merge(i)"
-              @split="split(i)"
-              @setBlockType="type => setBlockType(i, type)"
-              />
-          </div>
-        </transition-group>
-      </draggable>
+    <div class="shrink-0 px-24 min-w-[50%] mx-auto">
+      <div class="w-[65ch] mx-auto my-24">
+        <h1 id="title" contenteditable="true" spellcheck="false" data-ph="Untitled" @blur="title=($event.target as HTMLElement).innerText.replace('\n', '')"
+          class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12"
+          :class="title ? '' : 'empty'">
+          {{ title || '' }}
+        </h1>
+        <!-- <h1 id="title" class="px-4 sm:px-0 focus:outline-none focus-visible:outline-none text-5xl font-bold mb-12" contenteditable="true" spellcheck="false"
+          :class="store.title ? '' : 'empty'"
+          @blur="updateTitle($event)"
+          @keydown.enter="$event.preventDefault(); appendBlock(-1);"
+          @keydown.down="moveToBlocks"
+          data-ph="Untitled">
+          {{ store.title || '' }}
+        </h1> -->
+        <draggable tag="div" :list="blocks"
+          v-bind="dragOptions" class="-ml-24 space-y-2 pb-4">
+          <transition-group type="transition" name="flip-list">
+            <div class="list-group-item relative group flex rounded-lg"
+              v-for="block, i in blocks" :key="i">
+              <Block :block="block"
+                :ref="el => blockElements[i] = (el as unknown as typeof Block)"
+                @deleteBlock="blocks.splice(i, 1)"
+                @newBlock="insertBlock(i)"
+                @moveToPrevChar="() => { if (blockElements[i-1]) blockElements[i-1].moveToEnd(); scrollIntoView(); }"
+                @moveToNextChar="() => { if (blockElements[i+1]) blockElements[i+1].moveToStart(); scrollIntoView(); }"
+                @moveToPrevLine="() => { if (blockElements[i-1]) blockElements[i-1].moveToLastLine(); scrollIntoView(); }"
+                @moveToNextLine="() => { if (blockElements[i+1]) blockElements[i+1].moveToFirstLine(); scrollIntoView(); }"
+                @merge="merge(i)"
+                @split="split(i)"
+                @setBlockType="type => setBlockType(i, type)"
+                />
+            </div>
+          </transition-group>
+        </draggable>
+      </div>
     </div>
   </div>
 </template>
 
 <style>
-#title.empty[contenteditable='true']:empty:before{
+#title.empty[contenteditable='true']:before{
   content:attr(data-ph);
   color:#BBBBBB;
 }
@@ -137,6 +140,22 @@ onBeforeUpdate(() => {
 
 const blockElements = ref<typeof Block[]>([])
 
+function test (i:number) {
+  if (blockElements.value[i-1]) {
+    blockElements.value[i-1].moveToLastLine();
+    scrollIntoView();
+  }
+}
+
+function scrollIntoView () {
+  const selection = window.getSelection()
+  if (selection?.anchorNode?.nodeType === Node.ELEMENT_NODE) {
+    (selection?.anchorNode as HTMLElement).scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"})
+  } else {
+    (selection?.anchorNode?.parentElement as HTMLElement).scrollIntoView({behavior: "smooth", block: "center", inline: "nearest"})
+  }
+}
+
 function insertBlock (blockIdx: number) {
   blocks.value.splice(blockIdx + 1, 0, {
     type: BlockType.Text,
@@ -144,7 +163,10 @@ function insertBlock (blockIdx: number) {
       value: '',
     },
   })
-  setTimeout(() => blockElements.value[blockIdx+1].moveToStart())
+  setTimeout(() => {
+    blockElements.value[blockIdx+1].moveToStart()
+    scrollIntoView()
+  })
 }
 
 function setBlockType (blockIdx: number, type: BlockType) {
@@ -182,8 +204,12 @@ function merge (blockIdx: number) {
 function split (blockIdx: number) {
   const caretPos = blockElements.value[blockIdx].getCaretPos()
   insertBlock(blockIdx)
-  blocks.value[blockIdx+1].details.value = (caretPos.tag ? `<p><${caretPos.tag}>` : '') + blocks.value[blockIdx].details.value.slice(caretPos.pos)
-  blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos.pos) + (caretPos.tag ? `</${caretPos.tag}></p>` : '')
+  blocks.value[blockIdx+1].details.value = (caretPos.tag ? `<p><${caretPos.tag}>` : '<p>') + blocks.value[blockIdx].details.value.slice(caretPos.pos)
+  if (blocks.value[blockIdx].type === BlockType.Text) {
+    blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos.pos) + (caretPos.tag ? `</${caretPos.tag}></p>` : '</p>')
+  } else {
+    blocks.value[blockIdx].details.value = blocks.value[blockIdx].details.value.slice(0, caretPos.pos) + (caretPos.tag ? `</${caretPos.tag}></p>` : '')
+  }
   setTimeout(() => blockElements.value[blockIdx+1].moveToStart())
 }
 

@@ -5,7 +5,13 @@
       'mt-12 group-first:mt-0': block.type === BlockType.H1,
       'mt-4 group-first:mt-0': block.type === BlockType.H2,
     }">
-    <div class="h-full py-1.5 px-2 pl-4 text-center cursor-pointer transition-all duration-150 text-neutral-300 flex">
+    <div class="h-full px-2 pl-4 text-center cursor-pointer transition-all duration-150 text-neutral-300 flex"
+      :class="{
+        'py-1.5': block.type === BlockType.Text,
+        'py-1.5': block.type === BlockType.Divider,
+        'py-3.5': block.type === BlockType.H1,
+        'py-3': block.type === BlockType.H2,
+      }">
       <Tooltip value="<span class='text-neutral-400'><span class='text-white'>Click</span> to delete block</span>">
         <v-icon name="hi-trash" @click="emit('deleteBlock')"
           class="w-6 h-6 hover:bg-neutral-100 hover:text-neutral-400 p-0.5 rounded group-hover:opacity-100 opacity-0" />
@@ -167,16 +173,7 @@ function keyDownHandler (event:KeyboardEvent) {
       emit('moveToNextChar')
     }
   } else if (event.key === 'Backspace' && highlightedLength() === 0) {
-    if (menu.value && menu.value.open) {
-      // const selection = window.getSelection()
-      // if (selection) {
-      //   const offset = selection.anchorOffset
-      //   const deletedChar = getTextContent().substring(offset-1, offset)
-      //   if (deletedChar === '/') {
-      //     menu.value.open = false
-      //   }
-      // }
-    } else if (atFirstChar()) {
+    if (!(menu.value && menu.value.open) && atFirstChar()) {
       event.preventDefault()
       emit('merge')
     }
@@ -341,7 +338,6 @@ function getCaretPos () {
   if (selection) {
     if (props.block.type === BlockType.Text) {
       let offsetNode, offset = 0, tag = null
-      const numNodes = (content.value as any).$el.firstChild.firstChild.childNodes.length
       let selectedNode = selection.anchorNode
       if (['STRONG', 'EM'].includes(selectedNode?.parentElement?.tagName as string)) {
         selectedNode = selectedNode?.parentElement as Node
@@ -376,7 +372,7 @@ function getCaretPosWithoutTags () {
         selectedNode = selectedNode?.parentElement as Node
         tag = (selectedNode as HTMLElement).tagName.toLowerCase()
       }
-      for (const [i, node] of (content.value as any).$el.firstChild.firstChild.childNodes.entries()) {
+      for (const node of (content.value as any).$el.firstChild.firstChild.childNodes.entries()) {
         if (node === selectedNode) {
           offsetNode = node
           break
@@ -473,20 +469,18 @@ function parseMarkdown (event:KeyboardEvent) {
 }
 
 function clearSearch (searchTermLength: number) {
-  if (props.block.type === BlockType.H1 || true) {
-    const pos = getCaretPosWithoutTags().pos
-    const startIdx = pos - searchTermLength - 1
-    const endIdx = pos
-    setTimeout(() => {
-      try {
-        props.block.details.value = (content.value as any).innerText.substring(0, startIdx) + (content.value as any).innerText.substring(endIdx);
-        (content.value as any).innerText = (content.value as any).innerText.substring(0, startIdx) + (content.value as any).innerText.substring(endIdx)
-      } catch {
+  const pos = getCaretPosWithoutTags().pos
+  const startIdx = pos - searchTermLength - 1
+  const endIdx = pos
+  setTimeout(() => {
+    try {
+      props.block.details.value = (content.value as any).innerText.substring(0, startIdx) + (content.value as any).innerText.substring(endIdx);
+      (content.value as any).innerText = (content.value as any).innerText.substring(0, startIdx) + (content.value as any).innerText.substring(endIdx)
+    } catch {
 
-      }
-      setTimeout(() => setCaretPos(startIdx))
-    })
-  }
+    }
+    setTimeout(() => setCaretPos(startIdx))
+  })
 }
 
 defineExpose({
